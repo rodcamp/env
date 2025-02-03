@@ -18,14 +18,9 @@ jobs:
   manage_variable:
     runs-on: ubuntu-latest
     steps:
-      - name: Configurar GitHub CLI
-        run: |
-          echo "Configurando GitHub CLI..."
-          gh auth setup-git
-
       - name: Criar ou Atualizar variável no GitHub Actions
         run: |
           echo "Criando ou atualizando variável no GitHub Actions..."
           gh variable set "${{ github.event.inputs.variable_name }}" --body "${{ github.event.inputs.variable_value }}"
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}       
