@@ -1,4 +1,4 @@
-name: Manage GitHub Variables
+name: Manage GitHub Actions Variables
 
 on:
   workflow_dispatch:
@@ -12,20 +12,20 @@ on:
         required: true
 
 permissions:
-  actions: write  # 🔥 Necessário para gerenciar variables do repositório
+  actions: write  # 🔥 Permissão necessária para modificar variáveis do repositório
 
 jobs:
   manage_variable:
     runs-on: ubuntu-latest
     steps:
-      - name: Criar ou Atualizar uma variável no GitHub Actions
+      - name: Configurar GitHub CLI
         run: |
-          VAR_NAME=${{ github.event.inputs.variable_name }}
-          VAR_VALUE=${{ github.event.inputs.variable_value }}
-          GH_TOKEN=${{ secrets.GITHUB_TOKEN }}
-          REPO=${{ github.repository }}
+          echo "Configurando GitHub CLI..."
+          gh auth setup-git
 
-          curl -X PUT -H "Authorization: Bearer $GH_TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            -d "{\"name\":\"$VAR_NAME\",\"value\":\"$VAR_VALUE\"}" \
-            https://api.github.com/repos/$REPO/actions/variables/$VAR_NAME
+      - name: Criar ou Atualizar variável no GitHub Actions
+        run: |
+          echo "Criando ou atualizando variável no GitHub Actions..."
+          gh variable set "${{ github.event.inputs.variable_name }}" --body "${{ github.event.inputs.variable_value }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
