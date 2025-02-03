@@ -1,84 +1,31 @@
-name: Manage GitHub Environment
+name: Manage GitHub Variables
 
 on:
   workflow_dispatch:
     inputs:
-      environment_name:
-        description: "Nome da environment"
+      variable_name:
+        description: "Nome da variável"
         required: true
-        default: "xpto"
-      secret_name:
-        description: "Nome do secret"
-        required: true
-        default: "MY_SECRET"
-      secret_value:
-        description: "Valor do secret"
+        default: "MY_VARIABLE"
+      variable_value:
+        description: "Valor da variável"
         required: true
 
 permissions:
-  contents: read
-  actions: write
-  deployments: write  # Permissão necessária para gerenciar environments
-  repository-projects: write
-  id-token: write
+  actions: write  # 🔥 Necessário para gerenciar variables do repositório
 
 jobs:
-  manage_environment:
+  manage_variable:
     runs-on: ubuntu-latest
     steps:
-      - name: Verifica se a Environment já existe
-        id: check_env
+      - name: Criar ou Atualizar uma variável no GitHub Actions
         run: |
-          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github+json" \
-            https://api.github.com/repos/${{ github.repository }}/environments/${{ github.event.inputs.environment_name }})
-          
-          if [ "$RESPONSE" == "404" ]; then
-            echo "Environment não existe. Criando..."
-            echo "create=true" >> $GITHUB_ENV
-          else
-            echo "Environment já existe."
-            echo "create=false" >> $GITHUB_ENV
-          fi
-
-      - name: Criar Environment se não existir
-        if: env.create == 'true'
-        run: |
-          curl -X PUT \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github+json" \
-            https://api.github.com/repos/${{ github.repository }}/environments/${{ github.event.inputs.environment_name }}
-
-      - name: Criar ou Atualizar Secret na Environment
-        run: |
-          SECRET_NAME=${{ github.event.inputs.secret_name }}
-          SECRET_VALUE=${{ github.event.inputs.secret_value }}
-          REPO=${{ github.repository }}
-          ENV_NAME=${{ github.event.inputs.environment_name }}
+          VAR_NAME=${{ github.event.inputs.variable_name }}
+          VAR_VALUE=${{ github.event.inputs.variable_value }}
           GH_TOKEN=${{ secrets.GITHUB_TOKEN }}
+          REPO=${{ github.repository }}
 
-          echo "Atualizando secret $SECRET_NAME na environment $ENV_NAME"
-
-          # Obtém a chave pública da environment para encriptar o secret
-          PUBLIC_KEY_RESPONSE=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            https://api.github.com/repos/$REPO/environments/$ENV_NAME/secrets/public-key)
-
-          PUBLIC_KEY=$(echo "$PUBLIC_KEY_RESPONSE" | jq -r '.key')
-          KEY_ID=$(echo "$PUBLIC_KEY_RESPONSE" | jq -r '.key_id')
-
-          if [[ "$PUBLIC_KEY" == "null" || "$KEY_ID" == "null" ]]; then
-            echo "Erro ao obter chave pública da environment"
-            exit 1
-          fi
-
-          # Encripta o valor do secret usando a chave pública
-          ENCRYPTED_VALUE=$(echo -n "$SECRET_VALUE" | \
-            age --encrypt --armor -r "$PUBLIC_KEY")
-
-          # Envia o secret para o GitHub
           curl -X PUT -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
-            -d "{\"encrypted_value\":\"$ENCRYPTED_VALUE\",\"key_id\":\"$KEY_ID\"}" \
-            https://api.github.com/repos/$REPO/environments/$ENV_NAME/secrets/$SECRET_NAME
+            -d "{\"name\":\"$VAR_NAME\",\"value\":\"$VAR_VALUE\"}" \
+            https://api.github.com/repos/$REPO/actions/variables/$VAR_NAME
