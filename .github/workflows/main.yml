@@ -2,29 +2,15 @@ name: Manage GitHub Actions Variables
 
 on:
   workflow_dispatch:
-    inputs:
-      variable_name:
-        description: "Nome da variável"
-        required: true
-        default: "MY_VARIABLE"
-      variable_value:
-        description: "Valor da variável"
-        required: true
-
-permissions:
-  actions: write  # 🔥 Permissão necessária para modificar variáveis do repositório
 
 jobs:
   manage_variable:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
-        name: Checkout
-        with:
-          fetch-depth: 0    
-      - name: Criar ou Atualizar variável no GitHub Actions
+      - name: Verificar se existe a secret ou environment ACTIONS_STEP_DEBUG
         run: |
-          echo "Criando ou atualizando variável no GitHub Actions..."
-          gh variable set "${{ github.event.inputs.variable_name }}" --body "${{ github.event.inputs.variable_value }}"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}       
+          if [[ -n "${{ secrets.ACTIONS_STEP_DEBUG }}" || -n "${{ env.ACTIONS_STEP_DEBUG }}" ]]; then
+            echo "A variável ACTIONS_STEP_DEBUG está definida."
+          else
+            echo "A variável ACTIONS_STEP_DEBUG não está definida."
+          fi
